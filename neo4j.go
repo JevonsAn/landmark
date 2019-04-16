@@ -5,7 +5,6 @@ import (
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 )
 
-
 var (
 	neo4jHost     = "10.10.11.141"
 	neo4jPort     = "7687"
@@ -24,25 +23,9 @@ func GetNeo4jConnect() (driver neo4j.Driver, session neo4j.Session, err error) {
 	return
 }
 
-func ConnectNeo4j() (result neo4j.Result, err error){
-	var (
-		driver  neo4j.Driver
-		session neo4j.Session
-		//result  neo4j.Result
-		//err     error
-	)
+func Neo4jExec(session neo4j.Session, cypher string, params map[string]interface{}) (result neo4j.Result, err error) {
 
-
-
-	// handle driver lifetime based on your application lifetime requirements
-	// driver's lifetime is usually bound by the application lifetime, which usually implies one driver instance per application
-	defer driver.Close()
-
-
-
-	defer session.Close()
-
-	result, err = session.Run("MATCH (n:node) RETURN count(n) LIMIT 25", map[string]interface{}{})
+	result, err = session.Run(cypher, params)
 	if err != nil {
 		return // handle error
 	}

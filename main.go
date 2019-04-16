@@ -3,8 +3,11 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("Helllo")
-	result, err := ConnectNeo4j()
+	driver, session, err := GetNeo4jConnect()
+	defer driver.Close()
+	defer session.Close()
+
+	result, err := Neo4jExec(session, "", map[string]interface{}{})
 	for result.Next() {
 		fmt.Println(result.Record().GetByIndex(0))
 	}

@@ -1,11 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 )
-
 
 var (
 	mysqlHost     = "10.10.11.141"
@@ -15,12 +14,13 @@ var (
 )
 
 func GetMysqlConnect() (err error) {
-	db, err := sql.Open("mysql", "root:123@tcp(192.168.10.15:3306)/gamedata_tian?charset=utf8")
+	db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s:%s", mysqlUsername, mysqlPassword, mysqlHost, mysqlPort))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	defer db.Close()
+	return
 
 }
