@@ -4,15 +4,17 @@ import "fmt"
 
 func main() {
 	driver, session, err := GetNeo4jConnect()
-	defer driver.Close()
-	defer session.Close()
-
-	result, err := Neo4jExec(session, "", map[string]interface{}{})
-	for result.Next() {
-		fmt.Println(result.Record().GetByIndex(0))
+	if err != nil {
+		println(err)
+		defer driver.Close()
+		defer session.Close()
 	}
 
-	if err = result.Err(); err != nil {
-		fmt.Println(err)
+	ipRoad, relations, err := GetShortestLM(session, "8.8.8.8")
+
+	if err != nil {
+		println(err)
+	} else {
+		fmt.Println(ipRoad, relations)
 	}
 }
