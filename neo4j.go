@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"log"
 	"strings"
 )
 
@@ -35,7 +36,7 @@ func neo4jExec(session neo4j.Session, cypher string, params map[string]interface
 	return
 }
 
-func GetShortestPath(session neo4j.Session, ip string, ipList []string) ([]neo4j.Path, error) {
+func getShortestPath(session neo4j.Session, ip string, ipList []string, n int) ([]neo4j.Path, error) {
 	var result neo4j.Result
 	var err error
 
@@ -43,10 +44,10 @@ func GetShortestPath(session neo4j.Session, ip string, ipList []string) ([]neo4j
 
 	cypher := fmt.Sprintf("MATCH (n:%s {ip: $ip}),(m:%s), p=shortestpath((n)-[e:%s *..20]-(m)) ", nodeTableName, nodeTableName, edgeTableName)
 	cypher += "where m.ip in ['" + strings.Join(ipList, "', '") + "'] return p "
-	cypher += "order by length(p) limit 3"
+	cypher += "order by length(p) limit $n"
 
-	params := map[string]interface{}{"ip": ip}
-	//fmt.Println(cypher)
+	params := map[string]interface{}{"ip": ip, "n": n}
+	fmt.Println(cypher)
 
 	_, err = session.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
 		if result, err = tx.Run(cypher, params); err != nil {
@@ -64,6 +65,45 @@ func GetShortestPath(session neo4j.Session, ip string, ipList []string) ([]neo4j
 		return result.Consume()
 	})
 	return paths, err
+}
+
+func getNearestPathLength(session neo4j.Session, ip string, ipList []string) map[string]int {
+	var result neo4j.Result
+	var err error
+
+	ipLengths := make(map[string]int, 0)
+
+	cypher := fmt.Sprintf("MATCH (n:%s {ip: $ip}),(m:%s), p=shortestpath((n)-[e:%s *..20]-(m)) ", nodeTableName, nodeTableName, edgeTableName)
+	cypher += "where m.ip in ['" + strings.Join(ipList, "', '") + "'] and length(p) > 0 return m.ip, length(p) "
+	//cypher += "order by length(p)"
+
+	params := map[string]interface{}{"ip": ip}
+	//fmt.Println(cypher)
+
+	_, err = session.ReadTransaction(func(tx neo4j.Transaction) (interface{}, error) {
+		if result, err = tx.Run(cypher, params); err != nil {
+			return nil, err
+		}
+
+		for result.Next() {
+			mip := result.Record().GetByIndex(0)
+			length := result.Record().GetByIndex(1)
+			value1, ok1 := mip.(string)
+			value2, ok2 := length.(int64)
+			if ok1 && ok2 {
+				if value2 > 0 {
+					ipLengths[value1] = int(value2)
+				}
+			} else {
+				fmt.Println("get length wrong")
+			}
+		}
+		return result.Consume()
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ipLengths
 }
 
 func InsertNode(session neo4j.Session, ip string) error {
